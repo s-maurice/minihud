@@ -2,6 +2,7 @@ package fi.dy.masa.minihud.util;
 
 import fi.dy.masa.malilib.gui.Message;
 import fi.dy.masa.malilib.util.InfoUtils;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.structure.StructurePieceWithDimensions;
 import net.minecraft.structure.StructureStart;
 import net.minecraft.structure.SwampHutGenerator;
@@ -9,13 +10,28 @@ import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.ChunkRandom;
+import net.minecraft.world.gen.feature.AbstractTempleFeature;
+import net.minecraft.world.gen.feature.FeatureConfig;
 import net.minecraft.world.gen.feature.StructureFeature;
 import net.minecraft.world.gen.feature.SwampHutFeature;
 
 public class ClientStructureGeneration {
-    public int[] GetStructurePos(Long seed, int rx, int rz) {
 
-        seed = rx*341873128712L + rz*132897987541L + seed + 14357620; // testing with witch hut temporarily
+    // since methods to get chunkrange/regionsize/seperation/spacing and seed are protected, store in enum
+    // consider combining with enum in minihud/renderer/util/StructureTypes
+    // this would call getStructurePos() from DataStorage with the params already - avoiding having to look up a second time
+
+    // regionSize = .getSpacing() in XXXFeature or .getXXXDistance() in ChunkGeneratorConfig
+    // chunkRange = .getSpacing() - .getXXXSeparation in XXXFeature or .getXXXDistance() - .getXXXSeparation() in ChunkGeneratorConfig
+    // the first option only works if XXXFeature extends AbstractTempleFeature, else need to use ChunkGeneratorConfig
+
+    private enum StructureConfig {}
+
+    public StructureData getStructurePos(final ClientWorld world, StructureTypes.StructureType structureType, int rx, int rz, BlockPos playerPos, final int maxChunkRange) {
+
+        long seed = world.getSeed();
+
+        seed = rx*341873128712L + rz*132897987541L + seed + 14357620;
 //                      seed = rz*341873128712L + rz*132897987541L + seed + config.seed;
 
         seed = (seed ^ 25214903917L);// & ((1LL << 48) - 1);
@@ -53,7 +69,7 @@ public class ClientStructureGeneration {
 
 //                      create feature
         ChunkRandom rotationChunkRandom = new ChunkRandom();
-        rotationChunkRandom.setStructureSeed(this.getWorldSeed(dimensionType), posX >> 4, posZ >> 4);
+        rotationChunkRandom.setStructureSeed(seed, posX >> 4, posZ >> 4);
 
         StructurePieceWithDimensions swampHutGenerator = new SwampHutGenerator(rotationChunkRandom, posX-9, posZ-9);
         BlockBox witchBB = swampHutGenerator.getBoundingBox();
@@ -62,27 +78,25 @@ public class ClientStructureGeneration {
         witchBB.minY -= 1;
         witchBB.maxY -= 1;
 
-        if (MiscUtils.isStructureWithinRange(witchBB, playerPos, maxChunkRange << 4)){
-//                         using actual biome to check is structure pos is valid
-//                         greatly reduces complexity, as well as acting as a minimal check for validity of generated structure
+//        StructureFeature.DESERT_PYRAMID
 
-            Biome biome = mc.world.getBiome(new BlockPos(posX, 100, posZ));
-            if (biome != null) {
+        if (MiscUtils.isStructureWithinRange(witchBB, playerPos, maxChunkRange << 4)){
+            // use actual biome of world as minimal check of validity of generated structure pos - also much simpler
+            Biome biome = world.getBiome(new BlockPos(posX, 100, posZ));
+
+            if (biome != null && biome.hasStructureFeature(StructureFeature.SWAMP_HUT)) {
+                // debug print
                 String message = String.format("pos found: %d %d %s", posX-9, posZ-9, biome.toString());
                 InfoUtils.showInGameMessage(Message.MessageType.SUCCESS, 1000, message);
-                System.out.println(message);
 
-                // create and add structure
+                // create and return feature
                 StructureStart structureStart = new SwampHutFeature.Start(StructureFeature.SWAMP_HUT, posX>>4, posZ>>4, witchBB, 0, 14357620L);
-                StructureData structureData = StructureData.fromStructureStart(StructureTypes.StructureType.WITCH_HUT, structureStart);
-                this.structures.put(StructureTypes.StructureType.OCEAN_MONUMENT, structureData); // dif colour for debug
-
-                System.out.println("created, put");
+                return StructureData.fromStructureStart(StructureTypes.StructureType.WITCH_HUT, structureStart);
             }
         }
-        else {
-            String outrngmsg = String.format("out range %d %d", posX, posZ);
-            System.out.println(outrngmsg);
-        }
+
+        // debug so it compiles
+        StructureStart structureStart = new SwampHutFeature.Start(StructureFeature.SWAMP_HUT, posX>>4, posZ>>4, witchBB, 0, 14357620L);
+        return StructureData.fromStructureStart(StructureTypes.StructureType.WITCH_HUT, structureStart);
     }
 }
