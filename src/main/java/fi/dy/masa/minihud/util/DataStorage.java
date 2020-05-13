@@ -1,5 +1,6 @@
 package fi.dy.masa.minihud.util;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -10,6 +11,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.gson.JsonObject;
+import fi.dy.masa.malilib.gui.Message;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -18,14 +20,18 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTask;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.structure.StructurePieceWithDimensions;
 import net.minecraft.structure.StructureStart;
+import net.minecraft.structure.SwampHutGenerator;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.dimension.DimensionType;
@@ -40,6 +46,9 @@ import fi.dy.masa.minihud.renderer.OverlayRendererLightLevel;
 import fi.dy.masa.minihud.renderer.OverlayRendererSpawnableColumnHeights;
 import fi.dy.masa.minihud.renderer.shapes.ShapeManager;
 import fi.dy.masa.minihud.util.StructureTypes.StructureType;
+import net.minecraft.world.gen.ChunkRandom;
+import net.minecraft.world.gen.feature.StructureFeature;
+import net.minecraft.world.gen.feature.SwampHutFeature;
 
 public class DataStorage
 {
@@ -55,6 +64,7 @@ public class DataStorage
     private boolean carpetServer;
     private boolean worldSpawnValid;
     private boolean hasStructureDataFromServer;
+    private boolean clientStructureGeneration;
     private boolean structureRendererNeedsUpdate;
     private boolean structuresNeedUpdating;
     private boolean shouldRegisterStructureChannel;
@@ -83,6 +93,7 @@ public class DataStorage
         this.worldSpawnValid = false;
         this.structuresNeedUpdating = true;
         this.hasStructureDataFromServer = false;
+        this.clientStructureGeneration = false;
         this.structureRendererNeedsUpdate = false;
 
         this.lastStructureUpdatePos = null;
@@ -391,13 +402,25 @@ public class DataStorage
 
             if ((currentTime % 20) == 0)
             {
-                if (this.mc.isIntegratedServerRunning())
+//                if (this.mc.isIntegratedServerRunning())
+                if (true)
                 {
                     BlockPos playerPos = new BlockPos(this.mc.player);
 
                     if (this.structuresNeedUpdating(playerPos, 32))
                     {
                         this.updateStructureDataFromIntegratedServer(playerPos);
+                        this.updateStructureDataFromClientGeneration(playerPos); // debug, both at once
+                    }
+                }
+//                else if (this.clientStructureGeneration)
+                else if (false)
+                {
+                    BlockPos playerPos = new BlockPos(this.mc.player);
+
+                    if (this.structuresNeedUpdating(playerPos, 32))
+                    {
+                        this.updateStructureDataFromClientGeneration(playerPos);
                     }
                 }
                 else if (this.hasStructureDataFromServer)
@@ -418,6 +441,114 @@ public class DataStorage
             }
         }
     }
+
+    private void updateStructureDataFromClientGeneration(BlockPos playerPos) {
+        if (this.worldSeedValid) {
+            final DimensionType dimensionType = this.mc.player.dimension;
+
+            List<StructureType> enabledTypes = new ArrayList<>();
+
+            for (StructureType type : StructureType.values()) {
+                if (type.isEnabled() && type.existsInDimension(dimensionType)) {
+                    enabledTypes.add(type);
+                }
+            }
+
+            if (enabledTypes.isEmpty() == false) {
+
+                // using structure generation check from cubiomes' getStructurePos()
+
+                final int maxChunkRange = this.mc.options.viewDistance;
+//                final int maxChunkRange = this.mc.options.viewDistance + 2;
+
+                // shift 4 to get chunk, shift 5 to get region - only gets one structure per region
+                int minRX = ((playerPos.getX() >> 4) - maxChunkRange) >> 5;
+                int minRZ = ((playerPos.getZ() >> 4) - maxChunkRange) >> 5;
+                int maxRX = ((playerPos.getX() >> 4) + maxChunkRange) >> 5;
+                int maxRZ = ((playerPos.getZ() >> 4) + maxChunkRange) >> 5;
+
+
+                for (int rz = minRZ; rz <= maxRZ; ++rz) {
+                    for (int rx = minRX; rx <= maxRX; ++rx) {
+                        System.out.println(String.format("%d, %d", rx, rz));
+
+                        long seed = this.getWorldSeed(dimensionType);
+
+                        seed = rx*341873128712L + rz*132897987541L + seed + 14357620; // testing with witch hut temporarily
+//                      seed = rz*341873128712L + rz*132897987541L + seed + config.seed;
+
+                        seed = (seed ^ 25214903917L);// & ((1LL << 48) - 1);
+
+                        seed = (seed * 25214903917L + 11) & 281474976710655L;
+
+                        int posX, posZ;
+
+//                      if ((config.chunkrange & (config.chunkrange-1)) == 0)
+                        if ((24 & (24 - 1)) != 0) {
+                            // not power of 2
+//                          posX = (int) (seed >> 17) % config.chunkRange;
+                            posX = (int) (seed >> 17) % 24;
+
+                            seed = (seed * 25214903917L + 11) & 281474976710655L;
+//                          posZ = (int) (seed >> 17) % config.chunkRange;
+                            posZ = (int) (seed >> 17) % 24;
+                        } else {
+                            // power of 2
+
+//                          posX = (config.chunkRange * (seed >> 17)) >> 31;
+                            posX = (int) (24 * (seed >> 17)) >> 31;
+
+                            seed = (seed * 25214903917L + 11) & 281474976710655L;
+//                          posZ = (config.chunkRange * (seed >> 17)) >> 31;
+                            posZ = (int) (24 * (seed >> 17)) >> 31;
+                        }
+
+                        // offset pos to (9, 9) in chunk
+                        // biome check is performed at (9, 9) in chunk. but structure origin is at (0, 0)
+//                      posX = ((rx*config.regionSize + posX) << 4) + 9;
+//                      posZ = ((rz*config.regionSize + posZ) << 4) + 9;
+                        posX = ((rx*32 + posX) << 4) + 9;
+                        posZ = ((rz*32 + posZ) << 4) + 9;
+
+//                      create feature
+                        ChunkRandom rotationChunkRandom = new ChunkRandom();
+                        rotationChunkRandom.setStructureSeed(this.getWorldSeed(dimensionType), posX >> 4, posZ >> 4);
+
+                        StructurePieceWithDimensions swampHutGenerator = new SwampHutGenerator(rotationChunkRandom, posX-9, posZ-9);
+                        BlockBox witchBB = swampHutGenerator.getBoundingBox();
+
+                        // correct for witch hut height bug
+                        witchBB.minY -= 1;
+                        witchBB.maxY -= 1;
+
+                        if (MiscUtils.isStructureWithinRange(witchBB, playerPos, maxChunkRange << 4)){
+//                         using actual biome to check is structure pos is valid
+//                         greatly reduces complexity, as well as acting as a minimal check for validity of generated structure
+
+                            Biome biome = mc.world.getBiome(new BlockPos(posX, 100, posZ));
+                            if (biome != null) {
+                                String message = String.format("pos found: %d %d %s", posX-9, posZ-9, biome.toString());
+                                InfoUtils.showInGameMessage(Message.MessageType.SUCCESS, 1000, message);
+                                System.out.println(message);
+
+                                // create and add structure
+                                StructureStart structureStart = new SwampHutFeature.Start(StructureFeature.SWAMP_HUT, posX>>4, posZ>>4, witchBB, 0, 14357620L);
+                                StructureData structureData = StructureData.fromStructureStart(StructureType.WITCH_HUT, structureStart);
+                                this.structures.put(StructureType.OCEAN_MONUMENT, structureData); // dif colour for debug
+
+                                System.out.println("created, put");
+                            }
+                        }
+                        else {
+                            String outrngmsg = String.format("out range %d %d", posX, posZ);
+                            System.out.println(outrngmsg);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     private boolean structuresNeedUpdating(BlockPos playerPos, int hysteresis)
     {
