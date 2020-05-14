@@ -2,6 +2,7 @@ package fi.dy.masa.minihud.util;
 
 import fi.dy.masa.malilib.gui.Message;
 import fi.dy.masa.malilib.util.InfoUtils;
+import fi.dy.masa.minihud.config.StructureToggle;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.structure.StructurePieceWithDimensions;
 import net.minecraft.structure.StructureStart;
@@ -9,11 +10,17 @@ import net.minecraft.structure.SwampHutGenerator;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.gen.ChunkRandom;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
+import net.minecraft.world.gen.chunk.ChunkGeneratorConfig;
 import net.minecraft.world.gen.feature.AbstractTempleFeature;
 import net.minecraft.world.gen.feature.FeatureConfig;
 import net.minecraft.world.gen.feature.StructureFeature;
 import net.minecraft.world.gen.feature.SwampHutFeature;
+
+import java.util.HashMap;
+import java.util.Locale;
 
 public class ClientStructureGeneration {
 
@@ -25,7 +32,58 @@ public class ClientStructureGeneration {
     // chunkRange = .getSpacing() - .getXXXSeparation in XXXFeature or .getXXXDistance() - .getXXXSeparation() in ChunkGeneratorConfig
     // the first option only works if XXXFeature extends AbstractTempleFeature, else need to use ChunkGeneratorConfig
 
-    private enum StructureConfig {}
+    private static final HashMap<StructureTypes.StructureType, StructureConfig> TYPE_TO_CONFIG =  new HashMap<>();
+
+    private static final ChunkGeneratorConfig CHUNK_GENERATOR_CONFIG = new ChunkGeneratorConfig();
+
+    private enum StructureConfig {
+
+        DESERT_PYRAMID      ("Desert_Pyramid",14357617, CHUNK_GENERATOR_CONFIG.getTempleDistance(), 24),
+        IGLOO               ("Igloo",14357618, 32, 24),
+        JUNGLE_TEMPLE       ("Jungle_Pyramid", 14357619, 32, 24),
+        WITCH_HUT           ("Swamp_Hut" ,14357620, 32, 24),
+
+        PILLAGER_OUTPOST    ("Pillager_Outpost",165745296, 32, 24),
+        VILLAGE             ("Village",10387312, 32, 24),
+        OCEAN_RUIN          ("Ocean_Ruin",14357621, 20, 12),
+        SHIPWRECK           ("Shipwreck",165745295, 24, 20),
+        OCEAN_MONUMENT      ("Monument",10387313, 32, 27), // LARGE
+        MANSION             ( "Mansion",10387319, 80, 60),  // LARGE
+
+        BURIED_TREASURE     ("Buried_Treasure",10387320,  1,  0);  // TREASURE CONFIG
+
+//        NETHER_FORTRESS     (DimensionType.THE_NETHER,  "Fortress",         StructureToggle.OVERLAY_STRUCTURE_NETHER_FORTRESS)
+//        STRONGHOLD          (DimensionType.OVERWORLD,   "Stronghold",       StructureToggle.OVERLAY_STRUCTURE_STRONGHOLD),
+//        MINESHAFT           (DimensionType.OVERWORLD,   "Mineshaft",        StructureToggle.OVERLAY_STRUCTURE_MINESHAFT),
+//        END_CITY            (DimensionType.THE_END,     "EndCity",          StructureToggle.OVERLAY_STRUCTURE_END_CITY);
+
+        private final long structureSeed;
+        private final int regionSize;
+        private final int chunkRange;
+
+        private StructureConfig(String structureName, long structureSeed, int regionSize, int separation) {
+
+            this.structureSeed = structureSeed;
+            this.regionSize = regionSize;
+            this.chunkRange = regionSize - separation;
+
+            // change to use identifier or string
+            StructureTypes.StructureType structureType = StructureTypes.byStructureId(structureName.toLowerCase(Locale.ROOT));
+            TYPE_TO_CONFIG.put(structureType, this);
+        }
+
+        public long getStructureSeed() {
+            return structureSeed;
+        }
+
+        public int getRegionSize() {
+            return regionSize;
+        }
+
+        public int getChunkRange() {
+            return chunkRange;
+        }
+    }
 
     public StructureData getStructurePos(final ClientWorld world, StructureTypes.StructureType structureType, int rx, int rz, BlockPos playerPos, final int maxChunkRange) {
 
@@ -34,7 +92,7 @@ public class ClientStructureGeneration {
         seed = rx*341873128712L + rz*132897987541L + seed + 14357620;
 //                      seed = rz*341873128712L + rz*132897987541L + seed + config.seed;
 
-        seed = (seed ^ 25214903917L);// & ((1LL << 48) - 1);
+        seed = (seed ^ 25214903917L);// & ((1LL << 48) - 1);en
 
         seed = (seed * 25214903917L + 11) & 281474976710655L;
 
