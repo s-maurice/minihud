@@ -35,7 +35,15 @@ public class ClientStructureGeneration {
 
     @Nullable
     public static StructureConfig byStructureId(String id) {
-        return ID_TO_CONFIG.get(id);
+        StructureConfig structureConfig = ID_TO_CONFIG.get(id);
+
+        // bodge to ensure the enum's constructor is called
+        if (structureConfig == null) {
+            StructureConfig.values();
+
+            return ID_TO_CONFIG.get(id);
+        }
+        return structureConfig;
     }
 
     public enum StructureConfig {
