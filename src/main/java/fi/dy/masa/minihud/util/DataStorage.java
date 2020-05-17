@@ -1,6 +1,5 @@
 package fi.dy.masa.minihud.util;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -11,7 +10,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.gson.JsonObject;
-import fi.dy.masa.malilib.gui.Message;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -20,18 +18,14 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTask;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.structure.StructurePieceWithDimensions;
 import net.minecraft.structure.StructureStart;
-import net.minecraft.structure.SwampHutGenerator;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.dimension.DimensionType;
@@ -46,9 +40,7 @@ import fi.dy.masa.minihud.renderer.OverlayRendererLightLevel;
 import fi.dy.masa.minihud.renderer.OverlayRendererSpawnableColumnHeights;
 import fi.dy.masa.minihud.renderer.shapes.ShapeManager;
 import fi.dy.masa.minihud.util.StructureTypes.StructureType;
-import net.minecraft.world.gen.ChunkRandom;
-import net.minecraft.world.gen.feature.StructureFeature;
-import net.minecraft.world.gen.feature.SwampHutFeature;
+import fi.dy.masa.minihud.util.ClientStructureGeneration.StructureConfig;
 
 public class DataStorage
 {
