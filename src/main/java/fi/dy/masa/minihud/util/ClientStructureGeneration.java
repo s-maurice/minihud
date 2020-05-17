@@ -15,6 +15,7 @@ import net.minecraft.world.gen.ChunkRandom;
 import net.minecraft.world.gen.chunk.ChunkGeneratorConfig;
 import net.minecraft.world.gen.feature.*;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Locale;
 
@@ -32,6 +33,7 @@ public class ClientStructureGeneration {
 
     private static final HashMap<String, StructureConfig> ID_TO_CONFIG = new HashMap<>();
 
+    @Nullable
     public static StructureConfig byStructureId(String id) {
         return ID_TO_CONFIG.get(id);
     }
@@ -60,12 +62,14 @@ public class ClientStructureGeneration {
 //        MINESHAFT           (DimensionType.OVERWORLD,   "Mineshaft",        StructureToggle.OVERLAY_STRUCTURE_MINESHAFT),
 //        END_CITY            (DimensionType.THE_END,     "EndCity",          StructureToggle.OVERLAY_STRUCTURE_END_CITY);
 
+        private final String structureName;
         private final long structureSeed;
         private final int regionSize;
         private final int chunkRange;
 
-        StructureConfig(String structureName, long structureSeed, int regionSize, int separation) {
+        private StructureConfig(String structureName, long structureSeed, int regionSize, int separation) {
 
+            this.structureName = structureName.toLowerCase(Locale.ROOT);
             this.structureSeed = structureSeed;
             this.regionSize = regionSize;
             this.chunkRange = regionSize - separation;
@@ -76,7 +80,7 @@ public class ClientStructureGeneration {
                 Identifier key = Registry.STRUCTURE_FEATURE.getId(feature);
 
                 if (key != null) {
-                    ID_TO_CONFIG.put(key.toString(), this);
+                    ID_TO_CONFIG.put(key.getPath(), this);
                 }
             }
         }
@@ -92,6 +96,14 @@ public class ClientStructureGeneration {
         public int getChunkRange() {
             return this.chunkRange;
         }
+
+        public String getStructureName() {
+            return structureName;
+        }
+    }
+
+    private ClientStructureGeneration() {
+
     }
 
     public static StructureData getStructurePos(ClientWorld world, StructureTypes.StructureType structureType, int rx, int rz, BlockPos playerPos, final int maxChunkRange) {
