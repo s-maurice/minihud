@@ -34,7 +34,7 @@ public enum RendererToggle implements IHotkeyTogglable, IConfigNotifiable<IConfi
     OVERLAY_RANDOM_TICKS_FIXED          ("overlayRandomTicksFixed",     "", "Toggle the fixed-point random ticked chunks overlay renderer", "Random Ticked Chunks (fixed) overlay"),
     OVERLAY_RANDOM_TICKS_PLAYER         ("overlayRandomTicksPlayer",    "", "Toggle the player-following random ticked chunks overlay renderer", "Random Ticked Chunks (player-following) overlay"),
     OVERLAY_REGION_FILE                 ("overlayRegionFile",           "", "Toggle the region file border overlay renderer", "Region File Border overlay"),
-    OVERLAY_SLIME_CHUNKS_OVERLAY        ("overlaySlimeChunks",          "", KeybindSettings.INGAME_BOTH, "Toggle the Slime Chunk overlay renderer", "Slime Chunks overlay"),
+    OVERLAY_SLIME_CHUNKS_OVERLAY        ("overlaySlimeChunks",          "", KeybindSettings.INGAME_BOTH, "Toggle the Slime Chunk overlay renderer\nOn a server the player needs to either:\n  1) be admin/OP and run the /seed command manually EVERY TIME\n     they join or change dimensions, or\n  2) input the seed via chat, by sending a \"command\" like: minihud-seed 12345", "Slime Chunks overlay"),
     OVERLAY_SPAWNABLE_COLUMN_HEIGHTS    ("overlaySpawnableColumnHeights","", "Toggle the spawnable column heights overlay renderer", "Spawnable column heights overlay"),
     OVERLAY_SPAWN_CHUNK_OVERLAY_REAL    ("overlaySpawnChunkReal",       "", "Toggle the spawn chunks overlay renderer", "Spawn Chunks (real) overlay"),
     OVERLAY_SPAWN_CHUNK_OVERLAY_PLAYER  ("overlaySpawnChunkPlayer",     "", "Toggle the pseudo (player-following) spawn chunks overlay renderer", "Spawn Chunks (player-following, would-be) overlay"),
